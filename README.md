@@ -129,7 +129,15 @@ set; running them via `docker compose up database redis` is the easiest option.
 ```
 coffee-machine/
 ├── backend/       
+│   ├── db/
+│   │   └── schema.sql
 │   ├── src/
+│   │   ├── config/
+│   │   │   ├── database.ts
+│   │   │   ├── env.ts
+│   │   │   └── initDatabase.ts
+│   │   ├── models/
+│   │   │   └── order.ts
 │   │   ├── app.ts          
 │   │   └── server.ts       
 │   ├── .env.example      

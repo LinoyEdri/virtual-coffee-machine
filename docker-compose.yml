@@ -14,6 +14,16 @@ services:
       # A container cannot see its own published host port, so tell it.
       # Used only for log output. Must match the host side of `ports` above.
       PUBLIC_URL: http://localhost:3333
+      # `database` is the compose service name. Docker's embedded DNS
+      # resolves it to that container on the shared network, so the
+      # backend never needs to know an IP address.
+      DB_HOST: database
+      DB_PORT: 5432
+      # These read from the SAME variables the database service uses, so
+      # the two can never disagree. Change them in the root .env file.
+      DB_NAME: ${POSTGRES_DB:-coffee_machine}
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-coffee_password}
     # Optional: a local backend/.env can override the defaults above.
     # `required: false` keeps `docker compose up` working on a fresh clone,
     # where .env does not exist because it is git-ignored.
@@ -58,10 +68,15 @@ services:
     container_name: coffee-machine-database
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: coffee_password
-      POSTGRES_DB: coffee_machine
+      # Single source of truth for the credentials. Override them by
+      # creating a `.env` file in the project root (see .env.example).
+      # IMPORTANT: these only take effect when the data volume is EMPTY.
+      # Changing them later requires `docker compose down -v` first.
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-coffee_password}
+      POSTGRES_DB: ${POSTGRES_DB:-coffee_machine}
     ports:
+      # Requires that no other PostgreSQL is using 5432 on this machine.
       - "5432:5432"
     volumes:
       # postgres:18 sets PGDATA to /var/lib/postgresql/18/docker,
@@ -70,7 +85,7 @@ services:
     networks:
       - coffee-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d coffee_machine"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-coffee_machine}"]
       interval: 5s
       timeout: 5s
       retries: 10
