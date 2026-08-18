@@ -1,0 +1,97 @@
+===============================================================
+AI USAGE POLICY - Virtual Coffee Machine Project
+===============================================================
+
+
+---------------------------------------------------------------
+1. AI TOOLS USED
+---------------------------------------------------------------
+
+- ChatGPT (OpenAI)
+- Claude Code (Anthropic) - agentic coding assistant in the IDE / CLI
+
+
+---------------------------------------------------------------
+2. PURPOSE OF USE
+---------------------------------------------------------------
+
+ChatGPT
+  - Development stages and walkthrough of the project requirements
+  - Research and comparison of technology options before committing to
+    them (queue library, database choice, project structure).
+  - Explanation of concepts and syntax while writing the initial
+    skeleton of the project.
+
+Claude Code
+  - Reviewing the existing project files against this requirements
+    document and reporting mismatches before any code was changed.
+  - Applying the approved fixes to the infrastructure configuration
+    (docker-compose.yml, Dockerfiles, .env files, vite.config.ts).
+  - Explaining the purpose and role of every file in the repository.
+  - Writing the project documentation (README.md and this file).
+
+No AI tool was used to produce work I do not understand. Every change
+suggested by an AI tool was reviewed and explicitly approved by me
+before it was applied to the repository.
+
+
+---------------------------------------------------------------
+3. PROMPTS USED
+---------------------------------------------------------------
+
+STAGE 1 - PROJECT SKELETON
+--------------------------
+  Tool: ChatGPT
+
+  1. Let's start with stage 1 the prject's skeleton.
+     Send me the highlights of the stage, and walk me through
+     the implementation according to the requirements in the pdf file.
+
+STAGE 2 - DOCKER COMPOSE
+------------------------
+  Tool: ChatGPT
+
+  1. Now let's move on the next stage of Docker Compose.
+     Send me the highlights of the stage, and walk me through
+     the implementation according to the requirements in the pdf file.
+     The goal is to activate the whole system using 4 services: 
+     Frontend(React/Vite) + Backend(Node.js/Express) + 
+     Database(PostgresSQL) + Redis(Queue/BullMQ)
+
+REQUIREMENTS REVIEW AND REFACTOR (after stage 2)
+------------------------------------------------
+  Tool: Claude Code
+
+  1. "As you can see I have starting files. I did stages of
+      development to this project so I can do it correctly. For now
+      I did 2 stages: 1 - skeleton project, 2 - basic Docker
+      Compose. I want you to review these files to see that
+      everything is correct according to the requirements in the PDF
+      file. If something needs changing, before you edit anything
+      ask for my permission and explain what needs to be changed."
+
+
+UPCOMING STAGES
+---------------
+  Prompts used in stage 3 (database and API), stage 4 (queue),
+  stage 5 (reports and histogram) and stage 6 (frontend forms and
+  charts) will be appended to this section as those stages are
+  completed.
+
+
+---------------------------------------------------------------
+4. DECLARATION
+---------------------------------------------------------------
+
+I understand and can explain every part of my submission.
+
+I confirm that I reviewed all AI-generated output, that I understand
+the reason for every design decision in this project, and that I am
+able to explain any file, configuration value or line of code in it.
+
+
+Full name:  [Linoy Edri]
+Date:       [TO COMPLETE]
+Signature:  [---l---]
+
+===============================================================
