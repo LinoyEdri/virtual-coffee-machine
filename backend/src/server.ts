@@ -1,22 +1,21 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+// Must be the first import so that process.env is populated
+// before any other module reads from it.
+import "dotenv/config";
 
-dotenv.config();
+import app from "./app";
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// The port the process actually binds to. Under Docker this is the port
+// INSIDE the container, which is not the port you use in the browser.
+const PORT = Number(process.env.PORT) || 3000;
 
-app.use(cors());
-app.use(express.json());
-
-app.get("/health", (_req, res) => {
-  res.json({
-    success: true,
-    message: "Coffee Machine Backend is running"
-  });
-});
+// A container cannot discover its own published host port, so
+// docker-compose.yml passes it in. Falls back to the bound port when
+// running directly on the host without Docker.
+const PUBLIC_URL = process.env.PUBLIC_URL ?? `http://localhost:${PORT}`;
 
 app.listen(PORT, () => {
-  console.log(`Backend server is running on port ${PORT}`);
+  console.log("Coffee Machine backend is running");
+  console.log(`  API          : ${PUBLIC_URL}`);
+  console.log(`  Health check : ${PUBLIC_URL}/health`);
+  console.log(`  Bound to port ${PORT} inside the container`);
 });
