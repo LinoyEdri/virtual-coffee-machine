@@ -4,13 +4,27 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: coffee-machine-backend
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      # host:container -- API reachable at http://localhost:3333
+      - "3333:3000"
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      # A container cannot see its own published host port, so tell it.
+      # Used only for log output. Must match the host side of `ports` above.
+      PUBLIC_URL: http://localhost:3333
+    # Optional: a local backend/.env can override the defaults above.
+    # `required: false` keeps `docker compose up` working on a fresh clone,
+    # where .env does not exist because it is git-ignored.
     env_file:
-      - ./backend/.env
+      - path: ./backend/.env
+        required: false
     depends_on:
-      - database
-      - redis
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -22,8 +36,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: coffee-machine-frontend
+    restart: unless-stopped
     ports:
-      - "5173:5173"
+      # host:container -- app reachable at http://localhost:3000
+      - "3000:5173"
+    environment:
+      # Consumed by Vite in the browser, so it must be a host-reachable URL
+      VITE_API_URL: http://localhost:3333
+      # Printed in the startup banner. Must match the host side of `ports` above.
+      PUBLIC_URL: http://localhost:3000
     depends_on:
       - backend
     volumes:
@@ -33,30 +54,45 @@ services:
       - coffee-network
 
   database:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: coffee-machine-database
     restart: unless-stopped
     environment:
-      POSTGRES_USER: coffee_user
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: coffee_password
       POSTGRES_DB: coffee_machine
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # postgres:18 sets PGDATA to /var/lib/postgresql/18/docker,
+      # so the parent directory is the correct mount point.
+      - postgres_data:/var/lib/postgresql
     networks:
       - coffee-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d coffee_machine"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     container_name: coffee-machine-redis
     restart: unless-stopped
+    # appendonly: queued orders survive a restart (requirement 4.3.3)
+    # noeviction: required by BullMQ -- Redis must never drop job keys
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
       - coffee-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   postgres_data:

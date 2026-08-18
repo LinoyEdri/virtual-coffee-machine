@@ -4,7 +4,8 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+# npm ci installs exactly what package-lock.json pins -> reproducible builds
+RUN npm ci
 
 COPY . .
 
