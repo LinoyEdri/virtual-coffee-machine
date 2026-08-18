@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { isDatabaseReachable } from "./config/database";
 
 /**
  * Builds and configures the Express application.
@@ -16,10 +17,20 @@ app.use(cors());
 // Parse incoming JSON request bodies into req.body
 app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({
-    success: true,
+/**
+ * Liveness + readiness probe.
+ *
+ * Returns 503 rather than 200 when the database is unreachable, so an
+ * orchestrator (or docker-compose healthcheck) can tell "the process is
+ * up" apart from "the service can actually do its job".
+ */
+app.get("/health", async (_req, res) => {
+  const databaseConnected = await isDatabaseReachable();
+
+  res.status(databaseConnected ? 200 : 503).json({
+    success: databaseConnected,
     message: "Coffee Machine Backend is running",
+    database: databaseConnected ? "connected" : "unreachable",
   });
 });
 

@@ -1,21 +1,51 @@
-// Must be the first import so that process.env is populated
-// before any other module reads from it.
-import "dotenv/config";
-
+import { env } from "./config/env";
+import { connectDatabase, disconnectDatabase } from "./config/database";
+import { initDatabase } from "./config/initDatabase";
 import app from "./app";
 
-// The port the process actually binds to. Under Docker this is the port
-// INSIDE the container, which is not the port you use in the browser.
-const PORT = Number(process.env.PORT) || 3000;
+/**
+ * Starts the API only after the database is confirmed reachable and the
+ * schema is applied, so the service never accepts a request it cannot
+ * fulfil.
+ */
+async function start(): Promise<void> {
+  await connectDatabase();
+  await initDatabase();
 
-// A container cannot discover its own published host port, so
-// docker-compose.yml passes it in. Falls back to the bound port when
-// running directly on the host without Docker.
-const PUBLIC_URL = process.env.PUBLIC_URL ?? `http://localhost:${PORT}`;
+  const server = app.listen(env.port, () => {
+    console.log("Coffee Machine backend is running");
+    console.log(`  API          : ${env.publicUrl}`);
+    console.log(`  Health check : ${env.publicUrl}/health`);
+    console.log(`  Bound to port ${env.port} inside the container`);
+  });
 
-app.listen(PORT, () => {
-  console.log("Coffee Machine backend is running");
-  console.log(`  API          : ${PUBLIC_URL}`);
-  console.log(`  Health check : ${PUBLIC_URL}/health`);
-  console.log(`  Bound to port ${PORT} inside the container`);
+  /**
+   * Graceful shutdown. `docker compose down` sends SIGTERM; Ctrl+C sends
+   * SIGINT. Without these handlers Node exits immediately, cutting off
+   * in-flight requests and leaving database connections for the server
+   * to time out on its own.
+   */
+  const shutdown = async (signal: string): Promise<void> => {
+    console.log(`\n${signal} received, shutting down gracefully...`);
+
+    server.close(async () => {
+      await disconnectDatabase();
+      console.log("Shutdown complete");
+      process.exit(0);
+    });
+
+    // Safety net: never hang forever waiting for a stuck connection
+    setTimeout(() => {
+      console.error("Forced shutdown after timeout");
+      process.exit(1);
+    }, 10_000).unref();
+  };
+
+  process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  process.on("SIGINT", () => void shutdown("SIGINT"));
+}
+
+start().catch((error: unknown) => {
+  console.error("Failed to start the backend:", error);
+  process.exit(1);
 });
