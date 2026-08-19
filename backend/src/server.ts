@@ -1,6 +1,10 @@
+// MUST be the very first import in the process. Entity decorators run at
+// import time and write into reflect-metadata's storage, so that storage
+// has to exist before any file containing an entity is loaded.
+import "reflect-metadata";
+
 import { env } from "./config/env";
-import { connectDatabase, disconnectDatabase } from "./config/database";
-import { initDatabase } from "./config/initDatabase";
+import { closeDatabase, initializeDatabase } from "./config/dataSource";
 import app from "./app";
 
 /**
@@ -9,8 +13,10 @@ import app from "./app";
  * fulfil.
  */
 async function start(): Promise<void> {
-  await connectDatabase();
-  await initDatabase();
+  // One call replaces the previous connect + apply-schema pair:
+  // initialize() opens the pool, builds entity metadata, and runs schema
+  // synchronization.
+  await initializeDatabase();
 
   const server = app.listen(env.port, () => {
     console.log("Coffee Machine backend is running");
@@ -29,7 +35,7 @@ async function start(): Promise<void> {
     console.log(`\n${signal} received, shutting down gracefully...`);
 
     server.close(async () => {
-      await disconnectDatabase();
+      await closeDatabase();
       console.log("Shutdown complete");
       process.exit(0);
     });

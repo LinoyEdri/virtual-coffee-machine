@@ -24,6 +24,10 @@ services:
       DB_NAME: ${POSTGRES_DB:-coffee_machine}
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-coffee_password}
+      # No default on purpose - the backend refuses to start without it.
+      BOSS_PASSWORD: ${BOSS_PASSWORD}
+      # Defines month boundaries for the monthly report.
+      REPORT_TIMEZONE: ${REPORT_TIMEZONE:-Asia/Jerusalem}
     # Optional: a local backend/.env can override the defaults above.
     # `required: false` keeps `docker compose up` working on a fresh clone,
     # where .env does not exist because it is git-ignored.
