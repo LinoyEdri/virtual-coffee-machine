@@ -53,6 +53,24 @@ export const env = {
    */
   publicUrl: optional("PUBLIC_URL", `http://localhost:${port}`),
 
+  /**
+   * Timezone that defines month boundaries for the monthly report.
+   *
+   * createdAt is a TIMESTAMPTZ, i.e. an absolute instant, so "August" is
+   * not well defined without a zone: an order placed at 00:30 on
+   * 1 September in Israel is still 21:30 on 31 August in UTC. Pinning it
+   * here makes the report reproducible instead of depending on whatever
+   * timezone the server happens to run in.
+   */
+  reportTimezone: optional("REPORT_TIMEZONE", "Asia/Jerusalem"),
+
+  /**
+   * Verified when an order arrives with title === "boss" (requirement
+   * 4.1.2). Required, like DB_PASSWORD: a default here would mean every
+   * clone of this project shares a publicly known boss password.
+   */
+  bossPassword: required("BOSS_PASSWORD"),
+
   db: {
     host: optional("DB_HOST", "localhost"),
     port: toPort("DB_PORT", optional("DB_PORT", "5432")),

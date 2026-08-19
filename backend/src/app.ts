@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
-import { isDatabaseReachable } from "./config/database";
+import { isDatabaseReachable } from "./config/dataSource";
+import routes from "./routes";
+import { notFound } from "./middlewares/notFound";
+import { errorHandler } from "./middlewares/errorHandler";
 
 /**
  * Builds and configures the Express application.
@@ -33,5 +36,18 @@ app.get("/health", async (_req, res) => {
     database: databaseConnected ? "connected" : "unreachable",
   });
 });
+
+/**
+ * Registration order below is load-bearing. Middleware runs in the order
+ * it is registered:
+ *   1. cors + json parser - every request needs them first
+ *   2. routes             - the actual endpoints
+ *   3. notFound           - nothing above matched
+ *   4. errorHandler       - MUST be last, to catch everything above it
+ */
+app.use("/api", routes);
+
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;
