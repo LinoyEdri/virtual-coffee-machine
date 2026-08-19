@@ -16,19 +16,28 @@ AI USAGE POLICY - Virtual Coffee Machine Project
 ---------------------------------------------------------------
 
 ChatGPT
-  - Development stages and walkthrough of the project requirements
-  - Research and comparison of technology options before committing to
-    them (queue library, database choice, project structure).
-  - Explanation of concepts and syntax while writing the initial
-    skeleton of the project.
+  - Planning the development stages and walking through the project
+    requirements.
+  - Researching and comparing technologies before committing to them.
+  - Explaining concepts and syntax while writing code.
 
 Claude Code
-  - Reviewing the existing project files against this requirements
-    document and reporting mismatches before any code was changed.
-  - Applying the approved fixes to the infrastructure configuration
-    (docker-compose.yml, Dockerfiles, .env files, vite.config.ts).
-  - Explaining the purpose and role of every file in the repository.
+  - Reviewing existing project files against the requirements document
+    and reporting mismatches before any code was changed.
+  - Researching and comparing technologies, and presenting the
+    trade-offs of each option.
+  - Applying approved changes to configuration and infrastructure.
+  - Writing parts of the source code, and explaining the purpose, the
+    syntax and the concepts behind every file.
+  - Reviewing code that I wrote myself and pointing out mistakes in it.
   - Writing the project documentation (README.md and this file).
+
+Every technical decision in this project was presented to me as options
+with their trade-offs, and chosen by me rather than for me.
+
+Part of the source code was written by me directly. That code was
+reviewed, corrected and explained, so the mistakes in it became things I
+understand rather than things that were silently replaced.
 
 No AI tool was used to produce work I do not understand. Every change
 suggested by an AI tool was reviewed and explicitly approved by me
@@ -43,20 +52,20 @@ STAGE 1 - PROJECT SKELETON
 --------------------------
   Tool: ChatGPT
 
-  1. Let's start with stage 1 the prject's skeleton.
-     Send me the highlights of the stage, and walk me through
-     the implementation according to the requirements in the pdf file.
+  1. "Let's start with stage 1 the prject's skeleton.
+      Send me the highlights of the stage, and walk me through
+      the implementation according to the requirements in the pdf file."
 
 STAGE 2 - DOCKER COMPOSE
 ------------------------
   Tool: ChatGPT
 
-  1. Now let's move on the next stage of Docker Compose.
-     Send me the highlights of the stage, and walk me through
-     the implementation according to the requirements in the pdf file.
-     The goal is to activate the whole system using 4 services: 
-     Frontend(React/Vite) + Backend(Node.js/Express) + 
-     Database(PostgresSQL) + Redis(Queue/BullMQ)
+  1. "Now let's move on the next stage of Docker Compose.
+      Send me the highlights of the stage, and walk me through
+      the implementation according to the requirements in the pdf file.
+      The goal is to activate the whole system using 4 services: 
+      Frontend(React/Vite) + Backend(Node.js/Express) + 
+      Database(PostgresSQL) + Redis(Queue/BullMQ)"
 
 REQUIREMENTS REVIEW AND REFACTOR (after stage 2)
 ------------------------------------------------
@@ -71,12 +80,32 @@ REQUIREMENTS REVIEW AND REFACTOR (after stage 2)
       ask for my permission and explain what needs to be changed."
 
 
+STAGE 3 - DATABASE LAYER AND ORDERS API
+---------------------------------------
+  Tool: Claude Code
+
+  1. "Explain to me the library X and how you would implement it in
+      this project, without writing any code. Tell me whether it can
+      also create the schema, the tables and the enums in the database,
+      and how it fits into Docker. Then tell me if there are similar
+      libraries and compare them so I can decide which is best for this
+      project."
+
+  2. "Let's do it stage by stage. I want to write part of the code
+      myself so I understand what is happening - explain the syntax and
+      what every section does, tell me what to write, and check what I
+      wrote before we move on."
+
+  3. "Why is this value created twice? It should be done once, and I
+      think it belongs in the application rather than the database -
+      what do you think?"
+
+
 UPCOMING STAGES
 ---------------
-  Prompts used in stage 3 (database and API), stage 4 (queue),
-  stage 5 (reports and histogram) and stage 6 (frontend forms and
-  charts) will be appended to this section as those stages are
-  completed.
+  Prompts used in stage 4 (queue), stage 5 (reports) and stage 6
+  (frontend forms and charts) will be appended to this section as those
+  stages are completed.
 
 
 ---------------------------------------------------------------
@@ -91,7 +120,7 @@ able to explain any file, configuration value or line of code in it.
 
 
 Full name:  [Linoy Edri]
-Date:       [TO COMPLETE]
+Date:       [23/08/2026]
 Signature:  [---l---]
 
 ===============================================================
