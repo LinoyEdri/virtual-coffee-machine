@@ -1,3 +1,5 @@
+import Button from "react-bootstrap/Button";
+import Card from "react-bootstrap/Card";
 import BarChart from "../components/BarChart";
 import Message from "../components/Message";
 import { useHistogram } from "../hooks/useHistogram";
@@ -21,7 +23,10 @@ function Histogram() {
    */
   function renderChart() {
     if (loading) {
-      return <p>Loading...</p>;
+      // Plain text rather than a Spinner: a spinner is an animation.
+      return (
+        <p className="text-center text-secondary py-5 mb-0">Loading...</p>
+      );
     }
 
     if (error) {
@@ -29,7 +34,11 @@ function Histogram() {
     }
 
     if (labels.length === 0) {
-      return <p>No orders yet.</p>;
+      return (
+        <p className="text-center text-secondary py-5 mb-0">
+          No orders yet. Place one and it will appear here.
+        </p>
+      );
     }
 
     return (
@@ -37,29 +46,39 @@ function Histogram() {
       // hands sizing to its container. Without an explicit height the
       // canvas collapses to nothing. An inline style rather than CSS,
       // because this is layout the chart REQUIRES to work, not styling.
-      <div style={{ height: 320 }}>
+      <div style={{ height: 360 }}>
         <BarChart labels={labels} data={data} />
       </div>
     );
   }
 
   return (
-    <div>
-      <h1>Histogram</h1>
+    <>
+      <h1 className="mb-4">Histogram</h1>
 
-      <p>Orders per person.</p>
+      <Card>
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <span className="text-secondary">Orders per person</span>
 
-      {/*
-        type="button" is deliberate: inside a <form> a button defaults to
-        type="submit". There is no form here, but relying on that is how
-        stray submissions happen later.
-      */}
-      <button type="button" onClick={refresh} disabled={loading}>
-        {loading ? "Loading..." : "Refresh"}
-      </button>
+          {/*
+            type="button" is deliberate: inside a <form> a button
+            defaults to type="submit". There is no form here, but relying
+            on that is how stray submissions happen later.
+          */}
+          <Button
+            type="button"
+            variant="outline-dark"
+            size="sm"
+            onClick={refresh}
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </Button>
+        </Card.Header>
 
-      {renderChart()}
-    </div>
+        <Card.Body>{renderChart()}</Card.Body>
+      </Card>
+    </>
   );
 }
 

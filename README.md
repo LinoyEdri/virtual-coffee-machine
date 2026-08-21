@@ -17,6 +17,7 @@ monthly report export and a per-user order histogram.
 | ORM | TypeORM | The entity defines the schema — see "Why TypeORM" below |
 | Excel export | ExcelJS | Monthly report generated server-side |
 | Charts | Chart.js + react-chartjs-2 | Consumes the API's `labels`/`data` directly |
+| UI | React Bootstrap | Components rather than class strings — see "Why React Bootstrap" |
 | Queue | Redis + BullMQ | Priority queue + delayed jobs |
 | Containerization | Docker + Docker Compose | Whole system starts with one command |
 | Source control | Git | |
@@ -360,6 +361,70 @@ at all.
 The navbar uses `NavLink`, a variant that additionally applies an `active` class to
 whichever link matches the current route — which is how requirement 4.2.3's
 "visual marking of the active page" is satisfied with CSS alone and no JavaScript.
+
+---
+
+### Styling
+
+All appearance comes from **React Bootstrap**. `src/index.css` is three lines, and
+the only inline styles in the project are two that are structurally required: the
+chart's container height (Chart.js is configured with `maintainAspectRatio: false`,
+which hands sizing to the parent) and the minimum height of the image placeholder.
+Everything else is Bootstrap components and utility classes.
+
+#### Why React Bootstrap
+
+Requirement 5.2 lists using a UI library as a bonus, naming Material UI, Ant Design
+and Chakra as examples. React Bootstrap was chosen over those for four reasons:
+
+1. **It is components, not just CSS.** Plain Bootstrap ships stylesheets plus
+   jQuery-era JavaScript that manipulates the DOM directly — which fights React.
+   React Bootstrap reimplements each component in React, so state and rendering
+   stay in one model. `<Alert>`, `<Card>` and `<Form.Control>` are typed React
+   components, not `className` strings to remember.
+2. **It needed no configuration.** One CSS import in `main.tsx` and it works.
+   Material UI and Chakra are CSS-in-JS and expect a `ThemeProvider` at the root
+   plus a theme object; Tailwind is not a component library at all and would have
+   meant a build pipeline, a config file, and hand-writing every card, alert and
+   form control from utility classes. The brief for this stage was "as simple as
+   possible codewise", and this was the shortest path to a finished look.
+3. **Its form validation matched what the order form already needed.** Requirement
+   4.2.2 asks for per-field validation messages. `isInvalid` plus
+   `<Form.Control.Feedback>` produces exactly that — a red border and a message
+   under the offending input — with no CSS of ours. `controlId` on a `Form.Group`
+   also generates the input's `id` and the label's `htmlFor` together, so the pair
+   cannot drift apart.
+4. **`as={NavLink}` composes cleanly with React Router.** Bootstrap supplies the
+   appearance and Router supplies the behaviour, so requirement 4.2.3's "visual
+   marking of the active page" needed no CSS and no JavaScript — Router adds an
+   `active` class and Bootstrap already styles `.nav-link.active`.
+
+#### The trade-offs
+
+- **Bootstrap looks like Bootstrap.** Its defaults are recognisable, so the result
+  reads as conventional rather than distinctive. A dark navbar and a coffee-brown
+  accent on the chart pull it slightly away from stock, but only slightly.
+- **It brings transitions we did not ask for.** Bootstrap's own stylesheet applies
+  short hover and focus transitions to buttons and inputs. No animation was added
+  deliberately — a loading `Spinner` was rejected in favour of plain text for that
+  reason — but removing the framework's would mean writing override CSS, which
+  works against keeping the styling layer nearly empty.
+- **React Bootstrap wraps Bootstrap 5**, so it trails upstream Bootstrap releases
+  slightly.
+
+#### Where the images live
+
+Two, and both are placeholders you can replace:
+
+| What | Where | Notes |
+|---|---|---|
+| Coffee machine picture on the home page | `COFFEE_MACHINE_IMAGE` at the top of `src/pages/Home.tsx` | Landscape or square; shown `fluid` in a rounded, bordered frame. Left empty, a labelled placeholder box renders instead |
+| App icon | `public/coffee-icon.svg` | Used by **both** the browser tab (`index.html`) and the navbar logo, so replacing this one file updates both |
+
+The icon is drawn on a filled rounded square rather than as a bare outline, because
+it has to stay legible against a light browser tab *and* the dark navbar. Files in
+`public/` are copied verbatim and served from the site root, which is why both
+references are the absolute path `/coffee-icon.svg` rather than an import.
 
 ---
 
@@ -713,5 +778,5 @@ This project is being built in stages.
 - [x] **Stage 7** — Order page: conditional fields, client-side validation, order submission
 - [x] **Stage 8** — Histogram page: bar chart of orders per person, with a refresh button
 - [x] **Stage 9** — Reports page (Excel download) and Home landing page
-- [ ] **Stage 10** — Design pass: styling, layout, and the coffee machine image on Home
+- [x] **Stage 10** — Design pass with React Bootstrap: layout, navbar, cards, form styling and the app icon
 

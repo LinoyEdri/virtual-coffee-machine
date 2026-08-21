@@ -1,31 +1,15 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-}
-
-nav {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #ccc;
-}
-
-nav a {
-  color: #333;
-  text-decoration: none;
-}
-
 /*
- * Requirement 4.2.3 - visual marking of the active page.
- * NavLink applies the `active` class automatically when its route
- * matches, so no JavaScript is needed. Weight and underline only, no
- * colour, until the design stage.
+ * Bootstrap provides essentially all of the styling for this app, and
+ * layout is done with its utility classes in the components themselves.
+ *
+ * This file is deliberately almost empty: the less bespoke CSS there is,
+ * the fewer places a style can conflict with the framework.
  */
-nav a.active {
-  font-weight: bold;
-  text-decoration: underline;
-}
 
-main {
-  padding: 24px;
+/* Keeps the footer at the bottom of short pages rather than floating
+   halfway up the screen. */
+html,
+body,
+#root {
+  height: 100%;
 }

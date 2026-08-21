@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Alert from "react-bootstrap/Alert";
 
 interface MessageProps {
   type: "success" | "error";
@@ -11,10 +12,12 @@ interface MessageProps {
  * Returns null when there is nothing to say, so a page can render it
  * unconditionally instead of wrapping it in its own condition.
  *
- * Until the design stage there is no colour, so the two kinds are
- * distinguished by a text prefix. `role="alert"` makes assistive
- * technology announce the message when it appears - which matters here,
- * because the text shows up far from where the user was typing.
+ * Bootstrap names its red variant "danger" rather than "error", so the
+ * two vocabularies are mapped here - callers keep saying "error".
+ *
+ * role="alert" makes assistive technology announce the message when it
+ * appears, which matters because it shows up away from wherever the user
+ * was typing.
  */
 function Message({ type, children }: MessageProps) {
   if (!children) {
@@ -22,9 +25,9 @@ function Message({ type, children }: MessageProps) {
   }
 
   return (
-    <p role="alert">
-      <strong>{type === "success" ? "Success:" : "Error:"}</strong> {children}
-    </p>
+    <Alert variant={type === "success" ? "success" : "danger"} role="alert" className="mt-3 mb-0">
+      {children}
+    </Alert>
   );
 }
 
