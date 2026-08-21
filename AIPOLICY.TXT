@@ -115,11 +115,28 @@ STAGE 4 - MONTHLY REPORT EXCEL EXPORT
       why you chose it over the alternatives."
 
 
+STAGE 5 - QUEUE, REDIS AND BULLMQ
+---------------------------------
+  Tool: Claude Code
+
+  1. "Now let's move on to the queue. Explain to me the logic behind it
+      and the concepts in general, and how it connects to this project.
+      I have never used a queue before, so explain the technologies as
+      well."
+
+  2. "Let's do it slowly, file by file. I want to write code as well,
+      and I want everything explained as we go."
+
+  3. "There is a mess in the files. Answer these questions and do not
+      change anything until I say so - why does this file exist, why is
+      this value what it is, and why is this reached directly instead of
+      through the layer above it?"
+
+
 UPCOMING STAGES
 ---------------
-  Prompts used in stage 5 (queue) and stage 6 (frontend forms and
-  charts) will be appended to this section as those stages are
-  completed.
+  Prompts used in stage 6 (frontend forms and charts) will be appended
+  to this section as that stage is completed.
 
 
 ---------------------------------------------------------------

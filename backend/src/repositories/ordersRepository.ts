@@ -4,7 +4,7 @@ import { env } from "../config/env";
 import {
   Order,
   type CreateOrderInput,
-  type OrderStatus,
+  OrderStatus,
 } from "../entities/Order";
 
 /**
@@ -112,8 +112,8 @@ export async function updateStatus(
     { id },
     {
       status,
-      ...(status === "preparing" ? { startedAt: now } : {}),
-      ...(status === "done" || status === "failed"
+      ...(status === OrderStatus.Preparing ? { startedAt: now } : {}),
+      ...(status === OrderStatus.Done || status === OrderStatus.Failed
         ? { completedAt: now }
         : {}),
     },
@@ -191,4 +191,16 @@ export async function countOrdersByName(): Promise<OrderCount[]> {
     name: row.name,
     count: Number(row.count),
   }));
+}
+
+export async function setJobId(
+  id: number,
+  jobId: string
+): Promise<void> {
+  const repo = await ordersRepo();
+  
+  await repo.update(
+    { id },
+    { jobId }
+  );
 }

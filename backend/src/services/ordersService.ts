@@ -2,8 +2,8 @@ import { env } from "../config/env";
 import * as ordersRepository from "../repositories/ordersRepository";
 import { UnauthorizedError } from "../errors/AppError";
 import type { CreateOrderRequest } from "../dtos/order.dto";
-import type { Order } from "../entities/Order";
-
+import type { Order, OrderStatus } from "../entities/Order";
+import { enqueueOrder } from "../queue/ordersQueue";
 /**
  * Order Service (requirement 4.1.2, and "Order Service" in the section 2
  * architecture diagram).
@@ -32,10 +32,33 @@ export async function placeOrder(request: CreateOrderRequest): Promise<Order> {
     delayMinutes: request.delayMinutes,
   });
 
-  // Stage 6: create the queue job here, immediately after the insert.
-  // The order deliberately goes into the database FIRST - if the process
-  // dies between the two, the order still exists as done = false and
-  // crash recovery can pick it up. Enqueueing first would lose it.
+  const jobId = await enqueueOrder(order);
+
+  await ordersRepository.setJobId(order.id, jobId);
 
   return order;
+}
+
+/**
+ * Moves an order to a new lifecycle state. Called by the queue consumer.
+ *
+ * It exists so that NOTHING outside this layer reaches the repository -
+ * the consumer is an entry point, at the same level as a controller, and
+ * controllers never touch the database directly either.
+ *
+ * It is also the seam where transition rules belong as the project
+ * grows: rejecting an impossible move such as Done -> Preparing, or
+ * pushing a WebSocket notification the moment a coffee is ready.
+ *
+ * The status is an OrderStatus enum member, never a string. Setting
+ * OrderStatus.Done is what satisfies requirement 4.1.3, since the
+ * generated `done` column follows from it automatically.
+ *
+ * Returns null when the order no longer exists.
+ */
+export function updateStatus(
+  orderId: number,
+  status: OrderStatus,
+): Promise<Order | null> {
+  return ordersRepository.updateStatus(orderId, status);
 }

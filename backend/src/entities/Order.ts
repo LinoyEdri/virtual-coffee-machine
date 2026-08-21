@@ -32,14 +32,22 @@ import {
 export const ORDER_TITLES = ["employee", "boss"] as const;
 export type OrderTitle = (typeof ORDER_TITLES)[number];
 
-/** Lifecycle of an order. Becomes the `order_status` enum in PostgreSQL. */
-export const ORDER_STATUSES = [
-  "pending",
-  "preparing",
-  "done",
-  "failed",
-] as const;
-export type OrderStatus = (typeof ORDER_STATUSES)[number];
+/**
+ * Lifecycle of an order. Becomes the `order_status` enum in PostgreSQL.
+ *
+ * A real TypeScript enum rather than a union of string literals, because
+ * string enums are NOMINAL: `updateStatus(id, "done")` is a compile
+ * error and only `OrderStatus.Done` is accepted. A union type would have
+ * accepted the bare string quite happily, which is exactly what we want
+ * to prevent - a typo like "Done" or "compelted" must never reach the
+ * database.
+ */
+export enum OrderStatus {
+  Pending = "pending",
+  Preparing = "preparing",
+  Done = "done",
+  Failed = "failed",
+}
 
 /**
  * What the caller must supply to create an order.
@@ -100,14 +108,15 @@ export class Order {
    * `order_status` type, and keeps that name stable if the table is
    * ever renamed.
    *
-   * The spread is needed because ORDER_STATUSES is a readonly tuple
-   * (`as const`) while TypeORM expects a mutable array.
+   * TypeORM accepts the enum object directly and reads its values, so
+   * the SQL enum and the TypeScript enum can never list different
+   * members.
    */
   @Column({
     type: "enum",
-    enum: [...ORDER_STATUSES],
+    enum: OrderStatus,
     enumName: "order_status",
-    default: "pending",
+    default: OrderStatus.Pending,
   })
   status!: OrderStatus;
 
