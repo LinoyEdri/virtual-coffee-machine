@@ -101,11 +101,25 @@ STAGE 3 - DATABASE LAYER AND ORDERS API
       what do you think?"
 
 
+STAGE 4 - MONTHLY REPORT EXCEL EXPORT
+-------------------------------------
+  Tool: Claude Code
+
+  1. "We still have one API left - the monthly report. I want us to do
+      it together so I can write code as well. I want the repository to
+      get the data and the service to export it as an xlsx file, so the
+      raw data is never returned as-is. What do you think?"
+
+  2. "Go with the route you suggested, but explain the concept to me
+      because I have never used this kind of route before, and explain
+      why you chose it over the alternatives."
+
+
 UPCOMING STAGES
 ---------------
-  Prompts used in stage 4 (queue), stage 5 (reports) and stage 6
-  (frontend forms and charts) will be appended to this section as those
-  stages are completed.
+  Prompts used in stage 5 (queue) and stage 6 (frontend forms and
+  charts) will be appended to this section as those stages are
+  completed.
 
 
 ---------------------------------------------------------------

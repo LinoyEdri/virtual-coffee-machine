@@ -1,10 +1,12 @@
 import { Router } from "express";
-import orderRoutes from "./orderRoutes";
-import histogramRoutes from "./histogramRoutes";
+import ordersRoutes from "./ordersRoutes"
+import histogramsRoutes from "./histogramsRoutes"
+import reportsRoutes from "./reportsRoute";
 
 const router = Router();
 
-router.use("/orders", orderRoutes);
-router.use("/histogram", histogramRoutes);
+router.use("/orders", ordersRoutes);
+router.use("/histogram", histogramsRoutes);
+router.use("/reports", reportsRoutes);
 
 export default router;

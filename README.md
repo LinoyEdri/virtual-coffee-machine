@@ -15,6 +15,7 @@ monthly report export and a per-user order histogram.
 | Backend | Node.js + Express 5 + TypeScript | Controllers / Services / Repositories layering |
 | Database | PostgreSQL 18 | See "Why PostgreSQL" below |
 | ORM | TypeORM | The entity defines the schema — see "Why TypeORM" below |
+| Excel export | ExcelJS | Monthly report generated server-side |
 | Queue | Redis + BullMQ | Priority queue + delayed jobs |
 | Containerization | Docker + Docker Compose | Whole system starts with one command |
 | Source control | Git | |
@@ -124,14 +125,30 @@ docker compose down -v
 
 ### Environment variables
 
-`docker-compose.yml` provides working defaults for every variable, so no setup is
-required to run the project. To override them locally, copy the template:
+There is **one** configuration file: `.env` in the project root. Docker Compose
+reads it while parsing `docker-compose.yml`, substituting the values into
+`${VAR}` placeholders. `.env.example` documents every variable.
 
 ```bash
-cp backend/.env.example backend/.env
+cp .env.example .env
 ```
 
-`backend/.env` is git-ignored and is loaded only if it exists.
+`docker-compose.yml` supplies a working default for every non-sensitive variable.
+The two **passwords** — `POSTGRES_PASSWORD` and `BOSS_PASSWORD` — deliberately have
+none: they use Compose's `${VAR:?message}` form, which refuses to start and prints
+an explanation if the variable is missing. A committed default would mean every
+clone of this project shared a publicly known credential.
+
+Note that environment variables are not a security mechanism in themselves —
+anyone who can run `docker inspect` can read them. They keep secrets out of
+version control, which is the goal here; a production system would use Docker
+secrets or an external vault.
+
+`.env` is git-ignored; only `.env.example` is committed.
+
+> Note that `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` are applied by
+> PostgreSQL **only on first start with an empty data directory**. Changing them
+> later has no effect until you run `docker compose down -v`.
 
 ### Persistence
 
@@ -166,6 +183,12 @@ the whole repository and `typescript-eslint` can parse both.
 Note that a local PostgreSQL and Redis instance are required for the full feature
 set; running them via `docker compose up database redis` is the easiest option.
 
+Running the backend outside Docker also needs its own `backend/.env`, because
+`dotenv` reads from the working directory and there is no Compose to inject
+anything. Create one from the root `.env.example`, changing `DB_HOST` and
+`REDIS_HOST` to `localhost` — inside Docker they are the service names
+`database` and `redis`.
+
 ---
 
 ## API Endpoints
@@ -177,6 +200,7 @@ All routes are mounted under `/api`. Base URL when running in Docker:
 |---|---|---|---|---|
 | `POST` | `/api/orders` | JSON body | `201` + the created order | 4.1.2 |
 | `GET` | `/api/histogram` | — | `200` + `{ labels, data }` | 4.1.6 |
+| `GET` | `/api/reports/monthly` | `?year=&month=` | `200` + an `.xlsx` file download | 4.1.6, 4.2.2 |
 | `GET` | `/health` | — | `200`, or `503` if the database is unreachable | — |
 
 ### `POST /api/orders`
@@ -207,6 +231,34 @@ Returns the two parallel arrays named in requirement 4.1.6, where `labels[i]` an
 { "labels": ["Alice", "Dana"], "data": [3, 1] }
 ```
 
+### `GET /api/reports/monthly?year=2026&month=8`
+
+Returns every order placed in that month as an Excel workbook. Unlike the other
+endpoints this responds with **binary file bytes, not JSON**, using two headers:
+
+| Header | Effect |
+|---|---|
+| `Content-Type: application/vnd.openxmlformats-...sheet` | these bytes are an `.xlsx` workbook |
+| `Content-Disposition: attachment; filename="coffee-report-2026-08.xlsx"` | do not display — **save it**, under this name |
+
+`Content-Disposition: attachment` is what makes the browser download the file, and
+it is why this is a `GET`: the frontend's export button is a single line,
+`window.location.href = "/api/reports/monthly?year=2026&month=8"`, and the browser
+handles the save dialog natively. A `POST` could not be navigated to and would
+need the response read as a Blob and clicked through a synthetic link.
+
+The workbook is generated **in the backend** rather than the browser, so the raw
+order data is never exposed as JSON.
+
+| Detail | Behaviour |
+|---|---|
+| Columns | ID, Name, Title, Delay (minutes), Status, Ordered at, Scheduled for, Started at, Completed at |
+| Dates | real Excel date cells with a display format, so they sort and filter as dates rather than text |
+| Timezone | rebased into `REPORT_TIMEZONE` — Excel date cells carry no timezone of their own, so the raw instant would display as UTC |
+| Header row | bold and frozen |
+| Empty month | still a valid file, header row only, `200` — the month exists, it is simply empty |
+| `month` outside 1–12 | `400` |
+
 Unmatched routes return a JSON `404` rather than an HTML error page.
 
 ---
@@ -221,7 +273,7 @@ coffee-machine/
 │   │   │   ├── dataSource.ts    
 │   │   │   └── env.ts        
 │   │   ├── entities/
-│   │   │   └── Order.ts          t
+│   │   │   └── Order.ts          
 │   │   ├── dtos/
 │   │   │   └── order.dto.ts     
 │   │   ├── errors/
@@ -230,14 +282,17 @@ coffee-machine/
 │   │   │   └── ordersRepository.ts  
 │   │   ├── services/        
 │   │   │   ├── ordersService.ts
-│   │   │   └── histogramService.ts
+│   │   │   ├── histogramService.ts
+│   │   │   └── reportsService.ts  
 │   │   ├── controllers/      
 │   │   │   ├── ordersController.ts
-│   │   │   └── histogramController.ts
+│   │   │   ├── histogramController.ts
+│   │   │   └── reportsController.ts
 │   │   ├── routes/           
 │   │   │   ├── index.ts
-│   │   │   ├── orderRoutes.ts
-│   │   │   └── histogramRoutes.ts
+│   │   │   ├── ordersRoutes.ts
+│   │   │   ├── histogramsRoutes.ts
+│   │   │   └── reportsRoute.ts
 │   │   ├── middlewares/
 │   │   │   ├── errorHandler.ts  
 │   │   │   └── notFound.ts   
@@ -286,4 +341,5 @@ This project is being built in stages.
 - [x] **Stage 1** — Project skeleton (backend + frontend scaffolding, routing, pages)
 - [x] **Stage 2** — Docker Compose infrastructure (all four services, volumes, healthchecks)
 - [x] **Stage 3** — Database layer with TypeORM (entity, DataSource, repository) and the orders + histogram API
+- [x] **Stage 4** — Monthly report exported as an Excel file, generated server-side
 

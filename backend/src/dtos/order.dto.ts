@@ -46,12 +46,28 @@ export const createOrderSchema = z
     path: ["password"],
   });
 
+/**  /api/reports/monthly */
+export const monthlyReportQuerySchema = z
+  .object({
+    year: z.coerce
+      .number()
+      .int()
+      .min(2000, "Year must be 2000 or later")
+      .max(2100, "Year must be 2100 or earlier"),
+    month: z.coerce
+      .number()
+      .int()
+      .min(1, "Month must be 1-12")
+      .max(12, "Month must be 1-12"),
+  })
+
 /**
  * The TypeScript type is INFERRED from the schema above, not written by
  * hand. Change a validation rule and this type follows automatically -
  * the two can never drift apart.
  */
 export type CreateOrderRequest = z.infer<typeof createOrderSchema>;
+export type MonthlyReportQuery = z.infer<typeof monthlyReportQuerySchema>;
 
 /** An order as sent to clients. */
 export interface OrderResponse {
