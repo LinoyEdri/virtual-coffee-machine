@@ -5,6 +5,7 @@ import "reflect-metadata";
 
 import { env } from "./config/env";
 import { closeDatabase, initializeDatabase } from "./config/dataSource";
+import { closeQueue } from "./queue/ordersQueue";
 import app from "./app";
 
 /**
@@ -36,6 +37,7 @@ async function start(): Promise<void> {
 
     server.close(async () => {
       await closeDatabase();
+      await closeQueue();
       console.log("Shutdown complete");
       process.exit(0);
     });

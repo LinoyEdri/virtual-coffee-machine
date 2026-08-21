@@ -71,6 +71,19 @@ export const env = {
    */
   bossPassword: required("BOSS_PASSWORD"),
 
+  /**
+   * How long the consumer pretends to brew a coffee (requirement 4.1.3 -
+   * "a delay of X seconds"). Configurable so a demo does not have to
+   * wait around.
+   */
+  preparationSeconds: Number(optional("PREPARATION_SECONDS", "10")),
+
+  redis: {
+    // `redis` is the compose service name, resolved by Docker's DNS.
+    host: optional("REDIS_HOST", "localhost"),
+    port: toPort("REDIS_PORT", optional("REDIS_PORT", "6379")),
+  },
+
   db: {
     host: optional("DB_HOST", "localhost"),
     port: toPort("DB_PORT", optional("DB_PORT", "5432")),
