@@ -13,7 +13,7 @@ services:
       NODE_ENV: development
       # A container cannot see its own published host port, so tell it.
       # Used only for log output. Must match the host side of `ports` above.
-      PUBLIC_URL: http://localhost:3333
+      PUBLIC_URL: ${BACKEND_PUBLIC_URL:-http://localhost:3333}
       # `database` is the compose service name. Docker's embedded DNS
       # resolves it to that container on the shared network, so the
       # backend never needs to know an IP address.
@@ -98,10 +98,13 @@ services:
       # host:container -- app reachable at http://localhost:3000
       - "3000:5173"
     environment:
-      # Consumed by Vite in the browser, so it must be a host-reachable URL
-      VITE_API_URL: http://localhost:3333
-      # Printed in the startup banner. Must match the host side of `ports` above.
-      PUBLIC_URL: http://localhost:3000
+      # Consumed by Vite in the BROWSER, so it must be a host-reachable
+      # URL - the browser cannot resolve Docker service names. Must match
+      # the host side of the backend's `ports`.
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:3333}
+      # Printed in the startup banner. Must match the host side of the
+      # `ports` entry above.
+      PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost:3000}
     depends_on:
       - backend
     volumes:

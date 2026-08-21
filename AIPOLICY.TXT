@@ -133,10 +133,30 @@ STAGE 5 - QUEUE, REDIS AND BULLMQ
       through the layer above it?"
 
 
+STAGE 6 - FRONTEND FOUNDATION
+------------------------------
+  Tool: Claude Code
+
+  1. "Explain to me exactly what is needed in the frontend according to
+      the requirements in the pdf file, and divide it into development
+      stages. Then explain what we will need of each kind - hooks,
+      components, libraries - and how many. I want the design to be as
+      simple as possible for now; we will add it after everything works."
+
+  2. "Why did you rewrite the types from the backend instead of just
+      importing them, and why is this value declared in one file when
+      it is configured in another?"
+
+  Tool: ChatGPT
+
+  1. "What is axios library and why it should not be used here?"
+
+
 UPCOMING STAGES
 ---------------
-  Prompts used in stage 6 (frontend forms and charts) will be appended
-  to this section as that stage is completed.
+  Prompts used in stage 7 (order page), stage 8 (histogram), stage 9
+  (reports and home) and stage 10 (design) will be appended to this
+  section as those stages are completed.
 
 
 ---------------------------------------------------------------

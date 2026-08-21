@@ -15,6 +15,17 @@ nav a {
   text-decoration: none;
 }
 
+/*
+ * Requirement 4.2.3 - visual marking of the active page.
+ * NavLink applies the `active` class automatically when its route
+ * matches, so no JavaScript is needed. Weight and underline only, no
+ * colour, until the design stage.
+ */
+nav a.active {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
 main {
   padding: 24px;
 }

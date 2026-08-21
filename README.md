@@ -130,6 +130,65 @@ HTTP and publishes no ports.
 > SIGTERM before the shutdown handler can drain. Worker changes need
 > `docker compose restart worker`.
 
+### Frontend API layer
+
+Components never call `fetch`. Everything goes through `src/api/`, so the base URL,
+JSON handling and error translation exist in one place:
+
+- **`client.ts`** wraps `fetch` and turns a failed response into an `ApiError`
+  carrying the status and, for a `400`, the per-field details the backend sent. It
+  distinguishes two different failures: `fetch` only rejects when the request never
+  completed (server down, no network) — an HTTP 500 is a *resolved* promise and is
+  handled separately.
+- **`reports.ts`** is deliberately different: it returns a **URL string** rather
+  than data, because the report is a download. The page points the browser at that
+  URL and `Content-Disposition: attachment` does the rest.
+
+#### Why `fetch` rather than axios
+
+Axios is a good library, but every feature it is known for solves a problem this
+app does not have:
+
+| What axios adds | Situation here |
+|---|---|
+| Automatic JSON encode/decode | two lines in `client.ts` |
+| Throws on non-2xx | ~6 lines in `client.ts`, and we wanted custom `ApiError` translation anyway |
+| Interceptors | there is no auth token to refresh and no cross-cutting header |
+| Upload/download progress | nothing is uploaded; the report download is handled by the browser |
+| Consistent XHR behaviour across browsers | historical — `fetch` is native in every browser this targets |
+
+The app makes **three** requests in total, all behind a single wrapper. Adding a
+dependency — and roughly 13 KB to the bundle — to avoid writing about eight lines
+is a poor trade, and `fetch` needs no install, no version to keep current and no
+supply-chain surface.
+
+The honest counterpoint: **`fetch` has no built-in timeout**, so a hung request
+waits indefinitely. Axios gives you `timeout: 5000`. The native equivalent is
+`AbortSignal.timeout(ms)` passed as `signal`, which would be a one-line addition to
+`client.ts` if it becomes a problem.
+
+Axios would start to earn its place the moment this app needed authentication token
+refresh across many endpoints, upload progress, or shared retry logic — none of
+which the requirements call for.
+
+#### Why the types are duplicated
+
+`src/types/api.ts` restates the backend's DTOs rather than importing them. That is
+duplication, and it is deliberate — importing is blocked by three things:
+
+1. The frontend's Docker build context is `./frontend`, so files under `backend/`
+   are not sent to the daemon at all. It would compile locally and fail in Docker.
+2. Each package has its own `tsconfig` scoped to its own `src`.
+3. Most decisively, `OrderStatus` is a TypeScript **enum** — a runtime value, not
+   an erasable type. Importing it would pull in `entities/Order.ts` and with it
+   TypeORM and `reflect-metadata`, shipping a database ORM to the browser.
+
+Eliminating the duplication properly would mean either npm workspaces with a
+shared package (moving both Docker build contexts to the repository root), or
+generating the types from an OpenAPI spec. The contract is five small shapes and
+changes rarely, so restating it is the cheaper trade — but the file says so in its
+header, to make it a decision rather than an accident.
+
 ---
 
 ## Prerequisites
@@ -205,6 +264,16 @@ Two settings control the queue:
 |---|---|
 | `PREPARATION_SECONDS` | how long the consumer simulates brewing a coffee |
 | `WORKER_STOP_GRACE_PERIOD` | how long Docker waits for the worker to finish the coffee in progress before killing it — **must be longer than `PREPARATION_SECONDS`** |
+
+Three more describe how the services are reached. A container cannot discover its
+own published host port, so each is supplied explicitly and **must match the host
+side of that service's `ports` entry**:
+
+| Variable | Meaning |
+|---|---|
+| `BACKEND_PUBLIC_URL` | where the API is reachable — used for log output |
+| `FRONTEND_PUBLIC_URL` | where the app is reachable — used for log output |
+| `VITE_API_URL` | where the **browser** calls the API. Must be host-reachable: the browser cannot resolve Docker service names such as `backend` |
 
 > Note that `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` are applied by
 > PostgreSQL **only on first start with an empty data directory**. Changing them
@@ -372,11 +441,21 @@ coffee-machine/
 ├── frontend/        
 │   ├── public/       
 │   ├── src/
+│   │   ├── api/              
+│   │   │   ├── client.ts    
+│   │   │   ├── orders.ts
+│   │   │   ├── histogram.ts
+│   │   │   └── reports.ts         
+│   │   ├── types/
+│   │   │   └── api.ts            
+│   │   ├── errors/
+│   │   │   └── ApiError.ts     
 │   │   ├── components/    
 │   │   ├── pages/          
 │   │   ├── App.tsx      
 │   │   ├── index.css     
-│   │   └── main.tsx      
+│   │   ├── main.tsx      
+│   │   └── vite-env.d.ts    
 │   ├── eslint.config.js   
 │   ├── Dockerfile
 │   └── vite.config.ts
@@ -410,4 +489,5 @@ This project is being built in stages.
 - [x] **Stage 3** — Database layer with TypeORM (entity, DataSource, repository) and the orders + histogram API
 - [x] **Stage 4** — Monthly report exported as an Excel file, generated server-side
 - [x] **Stage 5** — Queue processing with Redis and BullMQ (producer, consumer, priority, delayed jobs)
+- [x] **Stage 6** — Frontend foundation: API layer, shared contract types, active nav marking
 
