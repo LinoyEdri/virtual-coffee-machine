@@ -144,6 +144,36 @@ JSON handling and error translation exist in one place:
   than data, because the report is a download. The page points the browser at that
   URL and `Content-Disposition: attachment` does the rest.
 
+### The order form
+
+The form is the only page that writes data, and it carries the two conditional
+rules from requirement 4.2.2: the password field exists only for a Boss order, the
+minutes field only for a Later one.
+
+**Logic is separated from UI.** `hooks/useOrderForm.ts` owns every field's state,
+the validation rules, and what happens on submit. `pages/Order.tsx` only renders
+and wires up — it contains no rule about what is required or when. That is what
+requirement 5.2 means by "separating logic from UI with custom hooks", and it means
+the rules can be read without wading through JSX.
+
+**Validation happens twice, deliberately.** The client checks before sending
+(4.2.2) so a mistake costs no round trip; the server checks again because a browser
+can be bypassed entirely. Neither trusts the other.
+
+The two sets of rules do not use the same field names — the API calls it
+`delayMinutes`, the form calls it `minutes` — so `mapServerErrors` translates
+between them. Without that, a server complaint about the delay would arrive keyed
+to a field the form has no input for and would silently vanish.
+
+A `401` is handled slightly differently from a `400`: it carries only a message and
+no `errors` array, but the only thing that can be unauthorised on this form is the
+boss password, so the message is attached to that field as well as the banner.
+
+**`RadioGroup` is generic over its option values.** TypeScript infers the union from
+the options array, so `onChange={setTitle}` type-checks directly against
+`OrderTitle` with no cast — a wrong value is a compile error rather than something
+the server rejects later.
+
 #### Why `fetch` rather than axios
 
 Axios is a good library, but every feature it is known for solves a problem this
@@ -450,7 +480,13 @@ coffee-machine/
 │   │   │   └── api.ts            
 │   │   ├── errors/
 │   │   │   └── ApiError.ts     
+│   │   ├── hooks/
+│   │   │   └── useOrderForm.ts   
 │   │   ├── components/    
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── Field.tsx       
+│   │   │   ├── RadioGroup.tsx    
+│   │   │   └── Message.tsx    
 │   │   ├── pages/          
 │   │   ├── App.tsx      
 │   │   ├── index.css     
@@ -490,4 +526,5 @@ This project is being built in stages.
 - [x] **Stage 4** — Monthly report exported as an Excel file, generated server-side
 - [x] **Stage 5** — Queue processing with Redis and BullMQ (producer, consumer, priority, delayed jobs)
 - [x] **Stage 6** — Frontend foundation: API layer, shared contract types, active nav marking
+- [x] **Stage 7** — Order page: conditional fields, client-side validation, order submission
 

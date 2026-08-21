@@ -152,11 +152,23 @@ STAGE 6 - FRONTEND FOUNDATION
   1. "What is axios library and why it should not be used here?"
 
 
+STAGE 7 - ORDER PAGE
+--------------------
+  Tool: Claude Code
+
+  1. "Let's build the order form. I want to write code as well - tell me
+      what each component needs and check what I wrote before we move
+      on."
+
+  2. "In this function, why did you not just pass the data through as it
+      arrived? Why check each one and rebuild it?"
+
+
 UPCOMING STAGES
 ---------------
-  Prompts used in stage 7 (order page), stage 8 (histogram), stage 9
-  (reports and home) and stage 10 (design) will be appended to this
-  section as those stages are completed.
+  Prompts used in stage 8 (histogram), stage 9 (reports and home) and
+  stage 10 (design) will be appended to this section as those stages are
+  completed.
 
 
 ---------------------------------------------------------------
