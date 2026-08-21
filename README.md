@@ -286,6 +286,83 @@ readers, which an SVG-based library handles better.
 
 ---
 
+### Downloading the report
+
+The entire client-side implementation of the Excel export is one line:
+
+```ts
+window.location.assign(monthlyReportUrl(year, month));
+```
+
+There is no state, no loading flag, no `fetch` and no custom hook on the reports
+page, because the browser does all of the work.
+
+#### What actually happens
+
+Reading that line alone it looks like the app navigates away to the API and the
+single-page app is lost. It isn't:
+
+```
+1. The browser begins navigating to the report URL
+2. The server responds with
+       Content-Type: application/vnd.openxmlformats-...sheet
+       Content-Disposition: attachment; filename="coffee-report-2026-08.xlsx"
+3. The browser reads that header BEFORE rendering anything
+4. `attachment` means "save this, do not display it"
+5. The navigation is ABANDONED - the current page stays exactly as it was
+6. The bytes go to the downloads folder
+```
+
+The server's header converts a navigation into a download mid-flight. Nothing
+unmounts, no state is lost, and no history entry is created.
+
+#### Why this rather than `fetch`
+
+Fetching the file would mean holding the bytes in memory, wrapping them in a
+`Blob`, creating an object URL, attaching it to a hidden `<a>`, clicking that link
+from JavaScript and then revoking the URL — roughly ten lines reimplementing what
+the browser already does, and losing the native save dialog and download progress
+that a large file benefits from.
+
+There is also a smaller obstacle. `Content-Disposition` is **not** one of the
+CORS-safelisted response headers, so across origins JavaScript cannot read it
+without the server sending `Access-Control-Expose-Headers`. A `fetch` would get the
+bytes but not the filename the backend chose, leaving the client to hardcode a name
+the server already owns. Navigation has no such restriction: the browser reads the
+header itself.
+
+*(To be precise: CORS would not have blocked the request. The API sends
+`Access-Control-Allow-Origin: *`, so the fetch itself would succeed — only reading
+that one header is restricted.)*
+
+#### The trade-off
+
+Because the download happens outside JavaScript, the page cannot show a spinner or
+catch a failure. If the API returned an error instead of a file, the browser would
+navigate to that response and the app would be replaced by it. That is acceptable
+here because the page only ever requests the current month, which is always valid —
+but it is the reason a form that lets the user pick an arbitrary month would want
+the `fetch`-and-`Blob` approach after all.
+
+`assign()` is used rather than `location.href = url`. The two are equivalent, but
+React's immutability lint rule reads the assignment as mutating state defined
+outside the component.
+
+### Client-side navigation
+
+Links between pages use `<Link>` from React Router, never `<a href>`. A plain
+anchor triggers a **full page reload** — the browser discards the React app,
+re-downloads everything and rebuilds from scratch. `Link` intercepts the click and
+swaps the route in place, which is the entire point of a single-page app. The
+difference is visible in the Network tab: with `Link`, navigating makes no requests
+at all.
+
+The navbar uses `NavLink`, a variant that additionally applies an `active` class to
+whichever link matches the current route — which is how requirement 4.2.3's
+"visual marking of the active page" is satisfied with CSS alone and no JavaScript.
+
+---
+
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
@@ -591,6 +668,10 @@ coffee-machine/
 │   │   │   ├── Message.tsx    
 │   │   │   └── BarChart.tsx
 │   │   ├── pages/          
+│   │   │   ├── Home.tsx    
+│   │   │   ├── Order.tsx            
+│   │   │   ├── Reports.tsx         
+│   │   │   └── Histogram.tsx     
 │   │   ├── App.tsx      
 │   │   ├── index.css     
 │   │   ├── main.tsx      
@@ -631,4 +712,6 @@ This project is being built in stages.
 - [x] **Stage 6** — Frontend foundation: API layer, shared contract types, active nav marking
 - [x] **Stage 7** — Order page: conditional fields, client-side validation, order submission
 - [x] **Stage 8** — Histogram page: bar chart of orders per person, with a refresh button
+- [x] **Stage 9** — Reports page (Excel download) and Home landing page
+- [ ] **Stage 10** — Design pass: styling, layout, and the coffee machine image on Home
 

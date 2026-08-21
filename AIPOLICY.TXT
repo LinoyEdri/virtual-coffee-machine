@@ -178,10 +178,20 @@ STAGE 8 - HISTOGRAM PAGE
       decide which fits the project best."
 
 
+STAGE 9 - REPORTS AND HOME PAGES
+--------------------------------
+  Tool: Claude Code
+
+  1. "Explain this line to me - what each part does and why it behaves
+      the way it does."
+
+  2. "Are you sure about that? Verify it rather than assuming."
+
+
 UPCOMING STAGES
 ---------------
-  Prompts used in stage 9 (reports and home) and stage 10 (design) will
-  be appended to this section as those stages are completed.
+  Prompts used in stage 10 (design) will be appended to this section as
+  that stage is completed.
 
 
 ---------------------------------------------------------------
