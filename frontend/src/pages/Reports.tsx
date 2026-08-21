@@ -1,3 +1,7 @@
+import Button from "react-bootstrap/Button";
+import Card from "react-bootstrap/Card";
+import Col from "react-bootstrap/Col";
+import Row from "react-bootstrap/Row";
 import { monthlyReportUrl } from "../api/reports";
 
 /**
@@ -32,6 +36,7 @@ function Reports() {
   const year = now.getFullYear();
   // getMonth() is 0-based; the API expects 1-12.
   const month = now.getMonth() + 1;
+  const monthName = MONTH_NAMES[now.getMonth()];
 
   function download(): void {
     /*
@@ -42,33 +47,45 @@ function Reports() {
      * exactly where it is, and the user gets the native save dialog and
      * download progress for free.
      *
-     * Fetching it instead would mean holding the bytes in memory,
-     * wrapping them in a Blob, creating an object URL, attaching it to a
-     * hidden link, clicking that link in code and then revoking the URL -
-     * reimplementing what the browser already does.
-     *
      * `assign()` rather than setting `location.href` directly: the two
      * are equivalent, but React's immutability lint rule reads the
-     * assignment as mutating state defined outside the component and
-     * rejects it. A method call says the same thing without the
-     * ambiguity.
+     * assignment as mutating state defined outside the component.
      */
     window.location.assign(monthlyReportUrl(year, month));
   }
 
   return (
-    <div>
-      <h1>Reports</h1>
+    <Row className="justify-content-center">
+      <Col md={9} lg={7} xl={6}>
+        <h1 className="mb-4">Reports</h1>
 
-      <p>
-        Export every order placed in {MONTH_NAMES[now.getMonth()]} {year} as an
-        Excel file.
-      </p>
+        <Card>
+          <Card.Body>
+            <Card.Title>
+              {monthName} {year}
+            </Card.Title>
 
-      <button type="button" onClick={download}>
-        Download monthly report
-      </button>
-    </div>
+            <Card.Text className="text-secondary">
+              Download every order placed this month as an Excel spreadsheet.
+              The file is generated on the server, so the raw order data is
+              never exposed as JSON.
+            </Card.Text>
+
+            <div className="d-grid">
+              <Button type="button" variant="dark" onClick={download}>
+                Download monthly report
+              </Button>
+            </div>
+          </Card.Body>
+
+          <Card.Footer className="text-secondary">
+            <small>
+              Includes the order id, name, title, delay, status and timestamps.
+            </small>
+          </Card.Footer>
+        </Card>
+      </Col>
+    </Row>
   );
 }
 

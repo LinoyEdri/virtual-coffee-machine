@@ -50,7 +50,19 @@ function BarChart({ labels, data, seriesLabel = "Orders" }: BarChartProps) {
         labels,
         // An ARRAY because a chart can show several series at once.
         // This one has a single series.
-        datasets: [{ label: seriesLabel, data }],
+        //
+        // The colour is set here rather than left to Chart.js's default
+        // blue, so the chart sits with the rest of the palette. Canvas
+        // bars are not DOM elements, so this cannot be done in CSS.
+        datasets: [
+          {
+            label: seriesLabel,
+            data,
+            backgroundColor: "#6f4e37",
+            borderColor: "#4a3323",
+            borderWidth: 1,
+          },
+        ],
       }}
       options={{
         responsive: true,

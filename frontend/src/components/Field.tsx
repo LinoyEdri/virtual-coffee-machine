@@ -1,28 +1,29 @@
+import Form from "react-bootstrap/Form";
+
 interface FieldProps {
-  /** Also used to link the label to the input, so it must be unique. */
+  /** Bootstrap wires the label and input together from this. */
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   /** "text", "password", "number" - defaults to "text". */
   type?: string;
-  /** Shown under the input when present. */
+  /** Shown under the input when present, and marks it invalid. */
   error?: string;
   /** Forwarded to the input, e.g. min={1} for the minutes field. */
   min?: number;
 }
 
 /**
- * A label, an input and an optional error message - the shape repeated
- * for every text input on the order form.
+ * A labelled input with its validation message.
  *
- * `htmlFor` and `id` must match: that pairing is what makes clicking the
- * label focus the input, and it is how assistive technology knows what
- * the input is called.
+ * `controlId` on the Form.Group generates the id and the label's htmlFor
+ * together, so they cannot drift apart - that pairing is what makes
+ * clicking the label focus the input.
  *
- * aria-invalid and aria-describedby connect the error text to the input
- * it belongs to, so a screen reader announces the reason rather than
- * just "invalid".
+ * `isInvalid` turns the border red and is what reveals the matching
+ * Form.Control.Feedback. Bootstrap hides the feedback element until the
+ * control is marked invalid, so it can be rendered unconditionally.
  *
  * onChange hands back the string value rather than the event, so pages
  * never write event.target.value.
@@ -36,29 +37,22 @@ function Field({
   error,
   min,
 }: FieldProps) {
-  const errorId = `${id}-error`;
-
   return (
-    <div>
-      <label htmlFor={id}>{label}</label>
-      <br />
-      <input
-        id={id}
+    <Form.Group className="mb-3" controlId={id}>
+      <Form.Label>{label}</Form.Label>
+
+      <Form.Control
         type={type}
         value={value}
         min={min}
+        isInvalid={Boolean(error)}
         onChange={(event) => {
           onChange(event.target.value);
         }}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
       />
-      {error ? (
-        <div id={errorId} role="alert">
-          {error}
-        </div>
-      ) : null}
-    </div>
+
+      <Form.Control.Feedback type="invalid">{error}</Form.Control.Feedback>
+    </Form.Group>
   );
 }
 

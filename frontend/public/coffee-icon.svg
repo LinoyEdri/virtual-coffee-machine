@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Coffee cup">
+  <!--
+    Placeholder app icon. Replace this file with your own to change both
+    the browser tab icon and the navbar logo - index.html and Navbar.tsx
+    both point at /coffee-icon.svg.
+
+    Drawn on a filled rounded square so it stays legible on a light
+    browser tab AND on the dark navbar. A bare outline would disappear
+    against one or the other.
+  -->
+  <rect width="64" height="64" rx="14" fill="#6f4e37" />
+
+  <!-- Cup body -->
+  <path d="M15 23h27v15a11 11 0 0 1-11 11h-5a11 11 0 0 1-11-11V23z" fill="#f5efe6" />
+
+  <!-- Handle -->
+  <path
+    d="M43 27h3a7.5 7.5 0 0 1 0 15h-3"
+    fill="none"
+    stroke="#f5efe6"
+    stroke-width="4.5"
+    stroke-linecap="round"
+  />
+
+  <!-- Saucer -->
+  <rect x="11" y="52" width="35" height="4.5" rx="2.25" fill="#f5efe6" />
+</svg>
