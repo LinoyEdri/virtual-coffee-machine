@@ -84,6 +84,52 @@ at startup, so the schema TypeORM builds is visible rather than implicit.
 > `SELECT "delayMinutes" FROM orders;` — the unquoted form fails. The application is
 > unaffected; TypeORM always quotes correctly.
 
+### Queue processing
+
+Brewing takes several seconds. Doing it inside the HTTP request would hang the
+browser, tie up a connection per order, and lose the order entirely if the server
+restarted mid-brew. So the work is split in two (requirement 4.1.3):
+
+```
+POST /api/orders → INSERT → add job to Redis → respond 201     (~20 ms)
+
+            ...independently, in the worker process...
+
+worker takes the job → status: preparing → wait → status: done
+```
+
+| Piece | Where |
+|---|---|
+| **Producer** — adds a job after the order is saved | `queue/ordersQueue.ts`, inside the API process |
+| **Consumer** — processes it and updates the order | `queue/ordersWorker.ts`, in its **own container** |
+
+**PostgreSQL is the source of truth; Redis is a to-do list.** A finished order stays
+in the database forever, while its job disappears from Redis once processed.
+
+Four details worth knowing:
+
+- **Priority** — boss orders get a lower BullMQ priority number and are handled
+  before employees. Both roles get an explicit number, because BullMQ treats
+  "no priority" as a separate track from prioritised jobs.
+- **Delay** — `scheduledFor` is converted into a BullMQ delay, so a delayed order
+  is invisible to the worker until it is due. Deriving it from the stored instant
+  rather than `delayMinutes` means the delay is always "how long from now".
+- **Order of operations** — the order is written to PostgreSQL **before** it is
+  enqueued. A crash between the two leaves a recoverable row; the reverse would
+  lose the order completely.
+- **Graceful shutdown** — `stop_grace_period` gives the worker time to finish the
+  coffee in hand when the container is stopped, instead of leaving that order
+  stuck on `preparing`.
+
+The worker runs the same image and the same codebase as the backend — only the
+start command differs (`src/worker.ts` instead of `src/server.ts`). It serves no
+HTTP and publishes no ports.
+
+> Unlike the API, the worker does **not** hot-reload. It runs `tsx` directly rather
+> than `tsx watch`, because the watcher supervises a child process and kills it on
+> SIGTERM before the shutdown handler can drain. Worker changes need
+> `docker compose restart worker`.
+
 ---
 
 ## Prerequisites
@@ -110,6 +156,13 @@ On first run Docker builds the images, which takes a few minutes. Afterwards:
 | Health check | http://localhost:3333/health |
 | PostgreSQL | `localhost:5432` (user `postgres`, db `coffee_machine`) |
 | Redis | `localhost:6379` |
+
+Five services start: `frontend`, `backend`, `worker`, `database` and `redis`. The
+worker has no URL — it consumes jobs rather than serving requests. Watch it with:
+
+```bash
+docker compose logs -f worker
+```
 
 To stop:
 
@@ -146,6 +199,13 @@ secrets or an external vault.
 
 `.env` is git-ignored; only `.env.example` is committed.
 
+Two settings control the queue:
+
+| Variable | Meaning |
+|---|---|
+| `PREPARATION_SECONDS` | how long the consumer simulates brewing a coffee |
+| `WORKER_STOP_GRACE_PERIOD` | how long Docker waits for the worker to finish the coffee in progress before killing it — **must be longer than `PREPARATION_SECONDS`** |
+
 > Note that `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` are applied by
 > PostgreSQL **only on first start with an empty data directory**. Changing them
 > later has no effect until you run `docker compose down -v`.
@@ -162,12 +222,15 @@ Two named Docker volumes keep state across restarts:
 ## Local Development (without Docker)
 
 ```bash
-# Backend
+# Backend API
 cd backend
 npm install
 npm run dev        # tsx watch, http://localhost:3000
 npm run lint       # ESLint
 npm run build      # type-check and emit to dist/
+
+# Queue consumer (a separate process — run it in another terminal)
+npm run worker
 
 # Frontend
 cd frontend
@@ -296,9 +359,13 @@ coffee-machine/
 │   │   ├── middlewares/
 │   │   │   ├── errorHandler.ts  
 │   │   │   └── notFound.ts   
+│   │   ├── queue/
+│   │   │   ├── connection.ts      
+│   │   │   ├── ordersQueue.ts     
+│   │   │   └── ordersWorker.ts     
 │   │   ├── app.ts        
-│   │   └── server.ts    
-│   ├── .env.example      
+│   │   ├── server.ts           
+│   │   └── worker.ts            
 │   ├── eslint.config.js   
 │   ├── Dockerfile
 │   └── tsconfig.json
@@ -342,4 +409,5 @@ This project is being built in stages.
 - [x] **Stage 2** — Docker Compose infrastructure (all four services, volumes, healthchecks)
 - [x] **Stage 3** — Database layer with TypeORM (entity, DataSource, repository) and the orders + histogram API
 - [x] **Stage 4** — Monthly report exported as an Excel file, generated server-side
+- [x] **Stage 5** — Queue processing with Redis and BullMQ (producer, consumer, priority, delayed jobs)
 
