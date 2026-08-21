@@ -16,6 +16,7 @@ monthly report export and a per-user order histogram.
 | Database | PostgreSQL 18 | See "Why PostgreSQL" below |
 | ORM | TypeORM | The entity defines the schema — see "Why TypeORM" below |
 | Excel export | ExcelJS | Monthly report generated server-side |
+| Charts | Chart.js + react-chartjs-2 | Consumes the API's `labels`/`data` directly |
 | Queue | Redis + BullMQ | Priority queue + delayed jobs |
 | Containerization | Docker + Docker Compose | Whole system starts with one command |
 | Source control | Git | |
@@ -144,35 +145,6 @@ JSON handling and error translation exist in one place:
   than data, because the report is a download. The page points the browser at that
   URL and `Content-Disposition: attachment` does the rest.
 
-### The order form
-
-The form is the only page that writes data, and it carries the two conditional
-rules from requirement 4.2.2: the password field exists only for a Boss order, the
-minutes field only for a Later one.
-
-**Logic is separated from UI.** `hooks/useOrderForm.ts` owns every field's state,
-the validation rules, and what happens on submit. `pages/Order.tsx` only renders
-and wires up — it contains no rule about what is required or when. That is what
-requirement 5.2 means by "separating logic from UI with custom hooks", and it means
-the rules can be read without wading through JSX.
-
-**Validation happens twice, deliberately.** The client checks before sending
-(4.2.2) so a mistake costs no round trip; the server checks again because a browser
-can be bypassed entirely. Neither trusts the other.
-
-The two sets of rules do not use the same field names — the API calls it
-`delayMinutes`, the form calls it `minutes` — so `mapServerErrors` translates
-between them. Without that, a server complaint about the delay would arrive keyed
-to a field the form has no input for and would silently vanish.
-
-A `401` is handled slightly differently from a `400`: it carries only a message and
-no `errors` array, but the only thing that can be unauthorised on this form is the
-boss password, so the message is attached to that field as well as the banner.
-
-**`RadioGroup` is generic over its option values.** TypeScript infers the union from
-the options array, so `onChange={setTitle}` type-checks directly against
-`OrderTitle` with no cast — a wrong value is a compile error rather than something
-the server rejects later.
 
 #### Why `fetch` rather than axios
 
@@ -221,6 +193,99 @@ header, to make it a decision rather than an accident.
 
 ---
 
+### The order form
+
+The form is the only page that writes data, and it carries the two conditional
+rules from requirement 4.2.2: the password field exists only for a Boss order, the
+minutes field only for a Later one.
+
+**Logic is separated from UI.** `hooks/useOrderForm.ts` owns every field's state,
+the validation rules, and what happens on submit. `pages/Order.tsx` only renders
+and wires up — it contains no rule about what is required or when. That is what
+requirement 5.2 means by "separating logic from UI with custom hooks", and it means
+the rules can be read without wading through JSX.
+
+**Validation happens twice, deliberately.** The client checks before sending
+(4.2.2) so a mistake costs no round trip; the server checks again because a browser
+can be bypassed entirely. Neither trusts the other.
+
+The two sets of rules do not use the same field names — the API calls it
+`delayMinutes`, the form calls it `minutes` — so `mapServerErrors` translates
+between them. Without that, a server complaint about the delay would arrive keyed
+to a field the form has no input for and would silently vanish.
+
+A `401` is handled slightly differently from a `400`: it carries only a message and
+no `errors` array, but the only thing that can be unauthorised on this form is the
+boss password, so the message is attached to that field as well as the banner.
+
+**`RadioGroup` is generic over its option values.** TypeScript infers the union from
+the options array, so `onChange={setTitle}` type-checks directly against
+`OrderTitle` with no cast — a wrong value is a compile error rather than something
+the server rejects later.
+
+### The histogram chart
+
+`components/BarChart.tsx` wraps the charting library so that no page imports it
+directly. Swapping to a different library later would change that one file and
+nothing else.
+
+#### Why Chart.js and react-chartjs-2
+
+**Two packages, two jobs.** `chart.js` is a framework-agnostic charting library
+that draws onto a `<canvas>`. `react-chartjs-2` is a thin wrapper whose only real
+job is managing the Chart.js instance's lifecycle — creating it on mount, updating
+it when props change, destroying it on unmount. Without it that would be a `ref`
+plus a `useEffect`, and forgetting the destroy leaks a chart on every re-render.
+
+**The decisive reason is the data shape.** Requirement 4.1.6 specifies that the API
+return `labels` and `data`:
+
+```json
+{ "labels": ["Alice", "Dana"], "data": [3, 1] }
+```
+
+That is *exactly* Chart.js's own format — two parallel arrays where `labels[i]`
+describes `data[i]`. The API response is passed straight through with no
+transformation at all.
+
+**Recharts was the main alternative.** Its declarative components read more like
+JSX, and it renders SVG, so bars are inspectable DOM. But it wants
+`[{ name, count }]`, so the two arrays would have to be zipped first — turning a
+shape the requirements handed us into one they didn't. It is also the larger
+bundle.
+
+**Hand-rolling with divs or SVG** would have meant no dependency at all and total
+control over appearance. It also means
+writing Y-axis scaling, tick labels and bar heights by hand — roughly sixty lines
+reimplementing what a library does, in the part of the project least likely to
+earn credit for it.
+
+#### What the wrapper has to do
+
+Chart.js has been modular since v3: controllers, elements, scales and plugins ship
+separately so a bundle only contains what it uses. The pieces must be **registered**
+or the chart fails at runtime with something like `"category" is not a registered
+scale` — which reads like a library bug rather than a missing line. `BarChart.tsx`
+registers `BarElement`, `CategoryScale`, `LinearScale`, `Tooltip` and `Legend` at
+module level, once, rather than on every render.
+
+Two options are set for correctness rather than looks:
+
+- **`beginAtZero`** — otherwise the Y axis can start above zero and make a
+  1-versus-2 difference look like 1-versus-10.
+- **`ticks: { precision: 0 }`** — order counts are whole numbers. With a maximum of
+  3, Chart.js would otherwise label ticks `0.5, 1, 1.5`.
+
+#### The trade-off worth knowing
+
+Chart.js draws pixels onto a canvas, so the bars are **not DOM elements**. They
+cannot be inspected in devtools, selected with CSS, or animated with stylesheets —
+all appearance goes through the configuration object. That is convenient while the
+project has no styling, but it also means a canvas chart is opaque to screen
+readers, which an SVG-based library handles better.
+
+---
+
 ## Prerequisites
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
@@ -264,6 +329,42 @@ To stop **and delete all persisted data** (database rows and queued jobs):
 ```bash
 docker compose down -v
 ```
+
+### After changing dependencies
+
+If you add or remove a package, rebuilding is **not** enough:
+
+```bash
+docker compose up -d --build -V <service>
+```
+
+The `backend`, `worker` and `frontend` services all mount an anonymous volume over
+`/app/node_modules`:
+
+```yaml
+volumes:
+  - ./frontend:/app        # your source, live-mounted
+  - /app/node_modules      # anonymous volume, shadows the image's copy
+```
+
+That second line is deliberate. Without it the host's `node_modules` — built for
+Windows or macOS — would overlay the container's Linux one, and anything with a
+native binary (esbuild, which Vite and tsx both depend on) would be the wrong
+platform's build and fail to run.
+
+The cost is that the volume **survives image rebuilds**. `--build` produces a new
+image containing the new package, and Compose then mounts the old volume straight
+over it, so the container still cannot find it. `-V` (`--renew-anon-volumes`)
+discards the stale volume.
+
+The symptom is always the same: `Cannot find module 'x'`, or from Vite,
+`Failed to resolve import "x"`.
+
+| Changed | Command |
+|---|---|
+| Source only | nothing — the watchers handle it |
+| `package.json` or a lockfile | `docker compose up -d --build -V <service>` |
+| Environment variables | `docker compose up -d --force-recreate <service>` |
 
 ### Environment variables
 
@@ -481,12 +582,14 @@ coffee-machine/
 │   │   ├── errors/
 │   │   │   └── ApiError.ts     
 │   │   ├── hooks/
-│   │   │   └── useOrderForm.ts   
+│   │   │   ├── useOrderForm.ts   
+│   │   │   └── useHistogram.ts
 │   │   ├── components/    
 │   │   │   ├── Navbar.tsx
 │   │   │   ├── Field.tsx       
 │   │   │   ├── RadioGroup.tsx    
-│   │   │   └── Message.tsx    
+│   │   │   ├── Message.tsx    
+│   │   │   └── BarChart.tsx
 │   │   ├── pages/          
 │   │   ├── App.tsx      
 │   │   ├── index.css     
@@ -527,4 +630,5 @@ This project is being built in stages.
 - [x] **Stage 5** — Queue processing with Redis and BullMQ (producer, consumer, priority, delayed jobs)
 - [x] **Stage 6** — Frontend foundation: API layer, shared contract types, active nav marking
 - [x] **Stage 7** — Order page: conditional fields, client-side validation, order submission
+- [x] **Stage 8** — Histogram page: bar chart of orders per person, with a refresh button
 

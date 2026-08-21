@@ -162,13 +162,26 @@ STAGE 7 - ORDER PAGE
 
   2. "In this function, why did you not just pass the data through as it
       arrived? Why check each one and rebuild it?"
+  
+  Tool: ChatGPT
+
+  1. "What is a hook in react? What are the advantages of custom hooks?
+
+STAGE 8 - HISTOGRAM PAGE
+------------------------
+  Tool: Claude Code
+
+  1. "Before we start, explain to me about this library and its syntax -
+      how it works and what each part does."
+
+  2. "Compare the options for this and tell me the trade-offs so I can
+      decide which fits the project best."
 
 
 UPCOMING STAGES
 ---------------
-  Prompts used in stage 8 (histogram), stage 9 (reports and home) and
-  stage 10 (design) will be appended to this section as those stages are
-  completed.
+  Prompts used in stage 9 (reports and home) and stage 10 (design) will
+  be appended to this section as those stages are completed.
 
 
 ---------------------------------------------------------------
